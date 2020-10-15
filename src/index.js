@@ -1,49 +1,24 @@
-import Didact from './didact';
-import { performUnitOfWork } from './fiber';
-import { commitRoot } from './commit';
-
+import * as Didact from './didact';
 /** @jsx Didact.createElement */
-const element = (
-  <div id="foo">
-    <a href="https://www.baidu.com">Baidu</a>
-    <b />
-    <div>
-      <a href="https://www.qq.com">QQ</a>
-    </div>
-  </div>
-);
-
-let nextUnitOfWork = null;
-let wipRoot = null;
-
-function workLoop(deadline) {
-  let shouldYield = false;
-  while (nextUnitOfWork && !shouldYield) {
-    nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
-
-    if (deadline.timeRemaining() < 1) {
-      shouldYield = true;
-    }
-  }
-
-  if (!nextUnitOfWork && wipRoot) {
-    commitRoot(wipRoot);
-    wipRoot = null;
-  }
-
-  requestIdleCallback(workLoop);
-}
-
-function render(element, container) {
-  nextUnitOfWork = wipRoot = {
-    dom: container,
-    props: {
-      children: [element]
-    }
-  };
-}
-
-requestIdleCallback(workLoop);
 
 const container = document.getElementById("root");
-render(element, container);
+let number = 0;
+const clickMe = () => {
+  number++;
+  reRender();
+};
+
+function reRender() {
+  const element = (
+    <div id="foo">
+      <div>
+        <span>数字：</span>
+        <span>{number}</span>
+      </div>
+      <button onClick={clickMe}>点我+1</button>
+    </div>
+  );
+  
+  Didact.render(element, container);  
+}
+reRender();

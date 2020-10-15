@@ -1,19 +1,51 @@
-function isProperty(key) {
-  return key !== 'children';
-}
+import { createDom } from './dom';
 
-function createDom(fiber) {
-  const $dom = fiber.type === 'TEXT_ELEMENT'
-    ? document.createTextNode('')
-    : document.createElement(fiber.type);
+function reconcileChildren(wipFiber, elements) {
+  let index = 0;
+  let previousFiber = null;
+  let oldFiber = wipFiber.alternate && wipFiber.alternate.child;
 
-  Object.keys(fiber.props)
-    .filter(isProperty)
-    .forEach(key => {
-      $dom[key] = fiber.props[key];
-    });
+  while (index < elements.length || oldFiber) {
+    const el = elements[index];
+    let newFiber = null;
 
-  return $dom;
+    const sameType = oldFiber && el && oldFiber.type === el.type;
+
+    if (sameType) {
+      newFiber = {
+        type: oldFiber.type,
+        props: el.props,
+        parent: wipFiber,
+        dom: oldFiber.dom,
+        alternate: oldFiber,
+        effectTag: 'UPDATE'
+      };
+    } else if (el) {
+      newFiber = {
+        ...el,
+        parent: wipFiber,
+        dom: null,
+        alternate: null,
+        effectTag: 'PLACEMENT'
+      };
+    } else if (oldFiber) {
+      oldFiber.effectTag = 'DELETION';
+      window.deletions.push(oldFiber);
+    }
+
+    if (index === 0) {
+      wipFiber.child = newFiber;
+    } else {
+      previousFiber.sibling = newFiber;
+    }
+
+    previousFiber = newFiber;
+
+    if (oldFiber) {
+      oldFiber = oldFiber.sibling;
+    }
+    index++;
+  }
 }
 
 // fiber的基础结构
@@ -26,10 +58,11 @@ function createDom(fiber) {
 //   props: {
 //     ...其他属性
 //     children: 'Array，子元素'
-//   }
+//   },
+//   alternate: '老的fiber对象'
 // }
 export function performUnitOfWork(fiber) {
-  console.log('perform unit of work,', fiber);
+  // console.log('perform unit of work,', fiber);
 
   // 1. add the element to the DOM
   if (!fiber.dom) {
@@ -37,25 +70,7 @@ export function performUnitOfWork(fiber) {
   }
   
   // 2. create the fibers for the element’s children
-  let previousFiber = null;
-  if (fiber.props.children) {
-    for (let i = 0, len = fiber.props.children.length; i < len; i++) {
-      const child = fiber.props.children[i];
-      const newFiber = {
-        ...child,
-        parent: fiber,
-        dom: null
-      };
-
-      if (i === 0) {
-        fiber.child = newFiber;
-      } else {
-        previousFiber.sibling = newFiber;
-      }
-
-      previousFiber = newFiber;
-    }
-  }
+  reconcileChildren(fiber, fiber.props.children);
 
   // 3. select the next unit of work
   if (fiber.child) {
