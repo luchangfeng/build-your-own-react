@@ -20,7 +20,9 @@ function reconcileChildren(wipFiber, elements) {
         alternate: oldFiber,
         effectTag: 'UPDATE'
       };
-    } else if (el) {
+    }
+
+    if (el && !sameType) {
       newFiber = {
         ...el,
         parent: wipFiber,
@@ -28,7 +30,9 @@ function reconcileChildren(wipFiber, elements) {
         alternate: null,
         effectTag: 'PLACEMENT'
       };
-    } else if (oldFiber) {
+    }
+
+    if (oldFiber && !sameType) {
       oldFiber.effectTag = 'DELETION';
       window.deletions.push(oldFiber);
     }
@@ -48,6 +52,21 @@ function reconcileChildren(wipFiber, elements) {
   }
 }
 
+function updateFunctionComponent(fiber) {
+  const children = [fiber.type(fiber.props)];
+  reconcileChildren(fiber, children);
+}
+
+function updateHostComponent(fiber) {
+  // 1. add the element to the DOM
+  if (!fiber.dom) {
+    fiber.dom = createDom(fiber);
+  }
+
+  // 2. create the fibers for the element’s children
+  reconcileChildren(fiber, fiber.props.children);
+}
+
 // fiber的基础结构
 // {
 //   type: '元素类型',
@@ -64,13 +83,11 @@ function reconcileChildren(wipFiber, elements) {
 export function performUnitOfWork(fiber) {
   // console.log('perform unit of work,', fiber);
 
-  // 1. add the element to the DOM
-  if (!fiber.dom) {
-    fiber.dom = createDom(fiber);
+  if (fiber.type instanceof Function) {
+    updateFunctionComponent(fiber);
+  } else {
+    updateHostComponent(fiber);
   }
-  
-  // 2. create the fibers for the element’s children
-  reconcileChildren(fiber, fiber.props.children);
 
   // 3. select the next unit of work
   if (fiber.child) {
