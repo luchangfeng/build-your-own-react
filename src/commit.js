@@ -16,7 +16,6 @@ function commitWork(fiber) {
   }
 
   const domParent = domParentFiber.dom;
-  console.log(fiber);
   if (fiber.effectTag === 'PLACEMENT' && fiber.dom) {
     domParent.appendChild(fiber.dom);
   } else if (fiber.effectTag === 'UPDATE' && fiber.dom) {

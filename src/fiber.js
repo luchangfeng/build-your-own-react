@@ -53,6 +53,10 @@ function reconcileChildren(wipFiber, elements) {
 }
 
 function updateFunctionComponent(fiber) {
+  fiber.hooks = [];
+  window.wipFiber = fiber;
+  window.hookIndex = 0;
+
   const children = [fiber.type(fiber.props)];
   reconcileChildren(fiber, children);
 }

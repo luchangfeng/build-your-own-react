@@ -26,6 +26,9 @@ function createTextElement(text) {
 let nextUnitOfWork = null;
 let currentRoot = null;
 let wipRoot = null;
+let workLoopStarted = false;
+window.wipFiber = null;
+window.hookIndex = 0;
 window.deletions = null;
 
 function workLoop(deadline) {
@@ -56,7 +59,40 @@ export function render(element, container) {
     },
     alternate: currentRoot
   };
-  currentRoot = wipRoot;
+
+  if (!workLoopStarted) {
+    workLoopStarted = true;
+    requestIdleCallback(workLoop);
+  }
 }
 
-requestIdleCallback(workLoop);
+export function useState(initialValue) {
+  const oldHook = window.wipFiber
+    && window.wipFiber.alternate
+    && window.wipFiber.alternate.hooks
+    && window.wipFiber.alternate.hooks[window.hookIndex];
+
+  const hook = {
+    state: oldHook ? oldHook.state : initialValue,
+    queen: []
+  };
+
+  const queen = oldHook ? oldHook.queen : [];
+  queen.forEach(action => {
+    hook.state = action(hook.state);
+  });
+
+  const setState = action => {
+    hook.queen.push(action);
+    window.deletions = [];
+    nextUnitOfWork = wipRoot = {
+      dom: currentRoot.dom,
+      props: currentRoot.props,
+      alternate: currentRoot
+    };
+  };
+
+  window.wipFiber.hooks.push(hook);
+  window.hookIndex++;
+  return [hook.state, setState];
+}

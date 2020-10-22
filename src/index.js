@@ -2,11 +2,6 @@ import * as Didact from './didact';
 
 /** @jsx Didact.createElement */
 const container = document.getElementById("root");
-let number = 0;
-const clickMe = () => {
-  number++;
-  reRender();
-};
 
 function App1() {
   return (
@@ -20,19 +15,28 @@ function App2() {
   );
 }
 
-function App(props) {
+function App() {
+  const [number, setNumber] = Didact.useState(0);
+  const [counter, setCounter] = Didact.useState(3);
+
   return (
     <div id="app" key="app">
+      <button onClick={() => {
+        setCounter(counter => counter + 1);
+        setCounter(counter => counter * 2);
+      }}>点我+1</button>
+      <p>当前数字：{counter}</p>
+      <hr />
+      <button onClick={() => setNumber(number => number + 1)}>点我切换</button>
       {
-        props.number % 2 === 0 ? <App1 /> : <App2 />
+        number % 2 === 0 ? <App1 /> : <App2 />
       }
-      <button onClick={clickMe}>点我切换</button>
     </div>
   );
 }
 
 function reRender() {
-  const element = <App number={number} />;
+  const element = <App />;
   
   Didact.render(element, container);  
 }

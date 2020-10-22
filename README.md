@@ -29,3 +29,21 @@
 所以我们在创建fiber时，需要将函数组件和普通组件区分开创建，函数组件不用创建Dom，直接递归处理其子组件即可
 同时在渲染时，也需要特殊处理，找父节点时，需要依次网上找，直到找到存在Dom的父节点，用于后续追加Dom
 删除组件时，同样需要递归处理，直到找到有Dom的子节点。
+
+#### Hooks
+实现一个useState的hook
+1. 在didact中实现一个空useState函数，此函数接收一个初始state值作为参数，返回一个数组，数组内容为[stateValue, setStateFunction]
+2. 定义一个wipFiber的全局变量，用来保存当前正在执行中的函数组件的fiber对象
+3. 在useState中创建hook对象，并将其挂载wipFiber下面，hook对象结构如下
+```javascript
+const hook = {
+  state: initialValue,
+  // queen内部保存业务调用setState时传入的函数，之所以使用数组是为了满足业务多次调用的使用方式
+  // Value的更新在下次render调用useState时进行计算，调用setState仅将其压入数组即可
+  queen: [actions]
+};
+```
+4. 通过fiber.alternate.hook.queen取出业务之前setState传入的函数，依次执行，更新hook.state的值
+5. 定义setState函数，函数接收一个函数作为参数用于计算新的state，将传入的函数压入hook.queen，之后更新nextUnitOfWork用于workLoop下次更新使用，最后将hook对象挂载到wipFiber上面
+6. 返回[hook.state, setState];
+7. 因为用户可以在一个函数组件内部使用多个hook，所以fiber上面挂载的是一个hook数组，内部放在每一个hook对象，同时还需要创建一个hookIndex，用于标识处理到哪一个hook了，每次updateFunctionComponent时将这些信息以及hooks重置
